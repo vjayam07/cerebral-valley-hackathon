@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+      TEAM_IDS: ${TEAM_IDS}
+      TRANSMITTER_IDS: ${TRANSMITTER_IDS}
+      START_POS: ${START_POS}
+      ORIGIN_XY: ${ORIGIN_XY}
+      CELL_SIZE: ${CELL_SIZE}
+      RETINA_SHAPE: ${RETINA_SHAPE}
+      WALKABLE_MASK_PATH: data/walkable_mask.npy
+    volumes:
+      - ./eval_data:/app/data:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  db_data:

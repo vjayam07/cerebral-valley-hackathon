@@ -1,0 +1,6 @@
+requests
+fastapi
+pydantic
+asyncpg
+uvicorn
+numpy

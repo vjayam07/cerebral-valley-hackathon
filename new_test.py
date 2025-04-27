@@ -62,6 +62,15 @@ def main(args):
 
     df_no2 = df[df['transmitter'] != 'tx2'] # removing one transmitter for testing purposes
 
+    val_ratio = 0.2
+    full = RSSIDataset(df_no2, id_map, args.cell_size)
+    val_len = int(len(full) * val_ratio)
+    print(len(full))
+    train_ds, val_ds = random_split(full, [len(full)-val_len, val_len])
+    train_ld = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+    print(len(train_ld))
+    val_ld = DataLoader(val_ds, batch_size=args.batch_size)
+
     # file_path = "ray_tracing.json"
     # if not os.path.exists(file_path):
     #     ray = make_ray_edges(df, id_map, args.cell_size)

@@ -290,7 +290,7 @@ def main(args):
     adj = make_adjacent_edges(coords, id_map)
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
 
-    df = df[df['transmitter'] != 'tx2'] # removing one transmitter for testing purposes
+    df_no2 = df[df['transmitter'] != 'tx2'] # removing one transmitter for testing purposes
 
     # file_path = "ray_tracing.json"
     # if not os.path.exists(file_path):
@@ -326,11 +326,15 @@ def main(args):
     data = data.to(args.device)
 
     # 2) pair dataset
-    full = RSSIDataset(df, id_map, args.cell_size)
+    full = RSSIDataset(df_no2, id_map, args.cell_size)
     val_len = int(len(full) * args.val_ratio)
     train_ds, val_ds = random_split(full, [len(full)-val_len, val_len])
     train_ld = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     val_ld   = DataLoader(val_ds, batch_size=args.batch_size)
+
+    df2 = df[df['transmitter'] == 'tx2']
+    tx2 = RSSIDataset(df2, id_map, args.cell_size)
+    test_ld = DataLoader(tx2, batch_size=args.batch_size)
 
     # 3) model
     model = RFPredictor(args.hidden_dim).to(args.device)

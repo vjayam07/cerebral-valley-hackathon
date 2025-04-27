@@ -92,7 +92,7 @@ def main(args):
         return to_undirected(torch.tensor(e, dtype=torch.long).t())
     data["pixel", "adjacent", "pixel"].edge_index = to_idx(adj)
     data["pixel", "ray", "pixel"].edge_index = to_idx(ray)
-    data = data.to(args.device)
+    data = data.to(device)
 
     # 2) pair dataset
     full = RSSIDataset(df_no2, id_map, args.cell_size)
@@ -107,8 +107,8 @@ def main(args):
     test_ld = DataLoader(tx2, batch_size=args.batch_size)
 
     # 3) model
-    model = RFPredictor(args.hidden_dim).to(args.device)
-    test_score = eval_epoch(model, data, val_ld, args.device)
+    model = RFPredictor(args.hidden_dim).to(device)
+    test_score = eval_epoch(model, data, val_ld, device)
 
     print(f"MSE accuracy on tx2 dataset: {test_score}")
 

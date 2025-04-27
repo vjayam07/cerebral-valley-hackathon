@@ -184,21 +184,25 @@ class RFPredictor(nn.Module):
             nn.Linear(node_dim, 1),
         )
 
-    def forward(
-        self,
-        data: HeteroData,
-        tx_idx: torch.LongTensor,      # (B,)
-        rx_idx: torch.LongTensor,      # (B,)
-    ) -> torch.Tensor:                 # returns (B,)
-        """
-        tx_idx, rx_idx are integer node-IDs (already mapped from (i,j) coords)
-        """
-        z_pix = self.enc(data)["pixel"]
-        h_tx = z_pix[tx_idx]
-        h_rx = z_pix[rx_idx]
+    def forward(self,
+                data: HeteroData,
+                tx_idx,
+                rx_idx):
+        # --- 1. get pixel embeddings ------------------------------------
+        z = self.enc(data.x_dict, data.edge_index_dict)["pixel"]
 
-        out = self.mlp(torch.cat([h_tx, h_rx], dim=-1))
-        return out.squeeze(-1)
+        # --- 2. normalise the indices -----------------------------------
+        tx_idx = torch.as_tensor(tx_idx, dtype=torch.long, device=z.device)
+        rx_idx = torch.as_tensor(rx_idx, dtype=torch.long, device=z.device)
+
+        if tx_idx.dim() == 0:
+            tx_idx = tx_idx.unsqueeze(0)
+            rx_idx = rx_idx.unsqueeze(0)
+
+        # --- 3. gather & predict ----------------------------------------
+        pair_emb = torch.cat([z[tx_idx], z[rx_idx]], dim=-1)
+        pred = self.mlp(pair_emb).squeeze(-1)
+        return pred
 
     # def forward(self, data: HeteroData, tx, rx):
     #     z = self.enc(data.x_dict, data.edge_index_dict)["pixel"]
@@ -251,7 +255,7 @@ def main(args):
     #     with open(file_path, 'r') as file:
     #         ray = json.load(file)
     # * Saving ray tracing results
-    CACHE = f"ray_edges_cs{args.cell_size}.pt"
+    CACHE = f"train_data/ray_edges_cs{args.cell_size}.pt"
     if not os.path.exists(CACHE):
         ray = make_ray_edges(df, id_map, args.cell_size)
         tmp = CACHE + ".tmp"

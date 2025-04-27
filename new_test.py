@@ -51,36 +51,35 @@ def eval_epoch(model, data, loader, device):
     return total / len(loader.dataset)
 
 
-import numpy as np
-from scipy.spatial import cKDTree      # fast KD-tree
+from collections import deque
 
-def build_walkable_tree(id_map, cell_size):
+def snap_tx_to_walkable(tx_i, tx_j, id_map, cell_size=4, search_radius=50):
     """
-    id_map          : dict { (row_cell , col_cell) : node_id }
-    cell_size (int) : pixels per coarse cell
-    returns
-        kdtree      : nearest-neighbour structure over cell centres
-        centres     : ndarray [N,2] of (i_px , j_px) float32
-        node_ids    : ndarray [N]   mapping idx -> node_id
+    Return (node_id, coarse_row, coarse_col, manhattan_dist_cells)
+    Always succeeds if *any* walkable cell exists within search_radius.
     """
-    rows, cols, node_ids = zip(*[(r, c, nid) for (r, c), nid in id_map.items()])
-    rows = np.array(rows, dtype=np.float32) * cell_size + cell_size / 2
-    cols = np.array(cols, dtype=np.float32) * cell_size + cell_size / 2
-    centres = np.stack([rows, cols], axis=1)     # [N,2]  (i , j)
-    kdtree  = cKDTree(centres)                   # query on (i , j)
-    node_ids= np.array(node_ids, dtype=np.int64)
-    return kdtree, centres, node_ids
+    # 1. start from the coarse cell that contains the transmitter
+    start_r = tx_i // cell_size
+    start_c = tx_j // cell_size
+    if (start_r, start_c) in id_map:
+        nid = id_map[(start_r, start_c)]
+        return nid, start_r, start_c, 0
 
+    # 2. BFS spiral outwards until we hit the first walkable cell
+    Q = deque([(start_r, start_c, 0)])
+    seen = { (start_r, start_c) }
+    while Q:
+        r, c, d = Q.popleft()
+        for dr, dc in [(1,0),(-1,0),(0,1),(0,-1)]:
+            nr, nc = r+dr, c+dc
+            if (nr, nc) in seen or d+1 > search_radius:
+                continue
+            if (nr, nc) in id_map:                # <-- FOUND !
+                return id_map[(nr,nc)], nr, nc, d+1
+            seen.add((nr,nc))
+            Q.append((nr,nc, d+1))
 
-
-def snap_tx(tx_i, tx_j, kdtree, centres, node_ids):
-    """
-    returns (i_snap , j_snap , node_id_snap , distance_pixels)
-    """
-    dist, idx = kdtree.query([tx_i, tx_j], k=1)
-    i_snap, j_snap = centres[idx]          # centre of nearest cell
-    node_id        = node_ids[idx]
-    return float(i_snap), float(j_snap), int(node_id), float(dist)
+    raise RuntimeError("No walkable cell found within search_radius")
 
 # -----------------------------------------------------------
 # Main
@@ -94,19 +93,15 @@ def main(args):
     df2 = df[df['transmitter'] == 'tx2']
 
     row0 = df2.iloc[0]
+    print(row0['tx_location_i'], row0["tx_location_j"])
     # 3. is that receiver *and* transmitter inside the mask?
     if (row0.tx_location_i // args.cell_size, row0.tx_location_j // args.cell_size) not in id_map:
-        kdtree, centres, node_ids = build_walkable_tree(id_map, cell_size=4)
-        i_snap, j_snap, node_id_snap, d_px = snap_tx(row0['tx_location_i'], row0['tx_location_j'], kdtree, centres, node_ids)
-        print("[pixels], distance moved:", d_px, "px")
+        node_id, i_snap, j_snap, _ = snap_tx_to_walkable(row0['tx_location_i'], row0['tx_location_j'], id_map)
         df['tx_location_i'] = i_snap
         df['tx_location_j'] = j_snap
-    else:
-        return
+        print(i_snap, j_snap)
     
     print((row0.tx_location_i // args.cell_size, row0.tx_location_j // args.cell_size) in id_map)
-
-    
     
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
     print(len(tx2))

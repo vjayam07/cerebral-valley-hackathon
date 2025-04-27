@@ -353,7 +353,7 @@ if __name__ == "__main__":
     p.add_argument("--csv_path", type=Path, required=True)
     p.add_argument("--delim", default=",", help="CSV delimiter")
     p.add_argument("--cell_size", type=int, default=4, help="pixels per super‑cell")
-    p.add_argument("--batch_size", type=int, default=1024)
+    p.add_argument("--batch_size", type=int, default=512)
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--hidden_dim", type=int, default=64)

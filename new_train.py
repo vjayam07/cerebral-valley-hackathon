@@ -34,18 +34,30 @@ from torch_geometric.utils import to_undirected
 # Utility: down‑sample a boolean mask by max‑pooling S×S blocks
 # -----------------------------------------------------------
 
-def pool_mask(mask: np.ndarray, S: int) -> np.ndarray:
-    """Return pooled mask with shape (H//S, W//S), where *any* walkable pixel
-    inside a block marks the entire super‑cell as walkable."""
-    if S == 1:
-        return mask.astype(bool)
-    H, W = mask.shape
-    H_trim = (H // S) * S
-    W_trim = (W // S) * W
-    mask = mask[:H_trim, :W_trim]
-    # reshape & max‑pool
-    pooled = mask.reshape(H_trim // S, S, W_trim // S, S).max(axis=(1, 3))
-    return pooled.astype(bool)
+# def pool_mask(mask: np.ndarray, S: int) -> np.ndarray:
+#     """Return pooled mask with shape (H//S, W//S), where *any* walkable pixel
+#     inside a block marks the entire super‑cell as walkable."""
+#     if S == 1:
+#         return mask.astype(bool)
+#     H, W = mask.shape
+#     H_trim = (H // S) * S
+#     W_trim = (W // S) * W
+#     mask = mask[:H_trim, :W_trim]
+#     # reshape & max‑pool
+#     pooled = mask.reshape(H_trim // S, S, W_trim // S, S).max(axis=(1, 3))
+#     return pooled.astype(bool)
+
+def pool_mask(mask: np.ndarray, cell_size: int = 4):
+    h, w = mask.shape
+    h_crop = (h // cell_size) * cell_size         # largest multiple ≤ h
+    w_crop = (w // cell_size) * cell_size
+    mask = mask[:h_crop, :w_crop]                 # throw away the ragged fringe
+
+    # now safe to reshape/pool
+    pooled = mask.reshape(h_crop // cell_size, cell_size,
+                          w_crop // cell_size, cell_size
+                         ).max(axis=(1, 3))       # OR .mean(...)
+    return pooled
 
 
 def downsample_coord(row: int, col: int, S: int) -> Tuple[int, int]:

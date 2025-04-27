@@ -94,21 +94,14 @@ def main(args):
     data["pixel", "ray", "pixel"].edge_index = to_idx(ray)
     data = data.to(device)
 
-    # 2) pair dataset
-    full = RSSIDataset(df_no2, id_map, args.cell_size)
-    val_len = int(len(full) * args.val_ratio)
-    train_ds, val_ds = random_split(full, [len(full)-val_len, val_len])
-    train_ld = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
-    val_ld   = DataLoader(val_ds, batch_size=args.batch_size)
-
     df2 = df[df['transmitter'] == 'tx2']
     print(df2)
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
-    test_ld = DataLoader(tx2, batch_size=args.batch_size)
+    test_dl = DataLoader(tx2, batch_size=args.batch_size)
 
     # 3) model
     model = RFPredictor(args.hidden_dim).to(device)
-    test_score = eval_epoch(model, data, val_ld, device)
+    test_score = eval_epoch(model, data, test_dl, device)
 
     print(f"MSE accuracy on tx2 dataset: {test_score}")
 

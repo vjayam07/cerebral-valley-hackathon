@@ -93,9 +93,14 @@ def main(args):
     df2 = df[df['transmitter'] == 'tx2']
 
     row0 = df2.iloc[0]
-    print(row0['tx_location_i'], row0["tx_location_j"])
+    curr_i = row0['tx_location_i']
+    curr_j = row0["tx_location_j"]
+    
+    if (curr_i // args.cell_size, curr_j // args.cell_size) not in id_map:
+        # for i, j in id_map.keys():
+
     # 3. is that receiver *and* transmitter inside the mask?
-    if (row0.tx_location_i // args.cell_size, row0.tx_location_j // args.cell_size) not in id_map:
+    
         node_id, i_snap, j_snap, _ = snap_tx_to_walkable(row0['tx_location_i'], row0['tx_location_j'], id_map)
         df['tx_location_i'] = id_map[node_id]
         df['tx_location_j'] = id_map[node_id]

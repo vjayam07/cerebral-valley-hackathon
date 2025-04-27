@@ -42,7 +42,8 @@ def load_gnn(fp='best_model.pt'):
 # -----------------------------------------------------------
 
 def eval_epoch(model, data, loader, device):
-    model.eval(); total = 0
+    model.eval()
+    total = 0
     with torch.no_grad():
         for tx, rx, y in tqdm(loader):
             tx, rx, y = tx.to(device), rx.to(device), y.to(device)
@@ -95,9 +96,9 @@ def main(args):
     data = data.to(device)
 
     df2 = df[df['transmitter'] == 'tx2']
-    print(df2)
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
     test_dl = DataLoader(tx2, batch_size=args.batch_size)
+    print(len(test_dl))
 
     # 3) model
     model = load_gnn()

@@ -160,12 +160,12 @@ class RFEncoder(nn.Module):
     def __init__(self, in_dim=2, hid=64, out_dim=64):
         super().__init__()
         self.conv1 = HeteroConv({
-            "adjacent": GATv2Conv(in_dim, hid, heads=2, concat=False),
-            "ray":      GATv2Conv(in_dim, hid, heads=2, concat=False),
+            "adjacent": GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
+            "ray":      GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
         }, aggr="mean")
         self.conv2 = HeteroConv({
-            "adjacent": GATv2Conv(hid, out_dim, heads=2, concat=False),
-            "ray":      GATv2Conv(hid, out_dim, heads=2, concat=False),
+            "adjacent": GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
+            "ray":      GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
         }, aggr="mean")
 
     def forward(self, x_dict, edge_index_dict):

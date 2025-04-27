@@ -13,6 +13,8 @@ Changes vs. the previous version
 import argparse
 from pathlib import Path
 from typing import Tuple, Dict, List
+import json
+import os
 
 import torch
 import torch.nn as nn
@@ -219,7 +221,17 @@ def main(args):
     coords, id_map, (Wc, Hc) = load_walkable_nodes(args.mask_path, args.cell_size)
     adj = make_adjacent_edges(coords, id_map)
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
-    ray = make_ray_edges(df, id_map, args.cell_size)
+
+    file_path = "ray_tracing.json"
+    if not os.path.exists(file_path):
+        ray = make_ray_edges(df, id_map, args.cell_size)
+        with open(file_path, 'w') as file:
+            json.dump(ray, file)
+    else:
+        with open(file_path, 'r') as file:
+            ray = json.load(file)
+
+    
 
     data = HeteroData()
     # node features: normalised coarse‑grid coords (x=j, y=i)

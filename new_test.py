@@ -100,7 +100,8 @@ def main(args):
     test_dl = DataLoader(tx2, batch_size=args.batch_size)
 
     # 3) model
-    model = RFPredictor(args.hidden_dim).to(device)
+    model = load_gnn()
+    model = model.to(device)
     test_score = eval_epoch(model, data, test_dl, device)
 
     print(f"MSE accuracy on tx2 dataset: {test_score}")

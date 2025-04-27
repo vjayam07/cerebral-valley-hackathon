@@ -290,6 +290,8 @@ def main(args):
     adj = make_adjacent_edges(coords, id_map)
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
 
+    df = df[df['transmitter'] != 'tx2'] # removing one transmitter for testing purposes
+
     # file_path = "ray_tracing.json"
     # if not os.path.exists(file_path):
     #     ray = make_ray_edges(df, id_map, args.cell_size)

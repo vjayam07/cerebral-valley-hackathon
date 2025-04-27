@@ -97,6 +97,7 @@ def main(args):
 
     df2 = df[df['transmitter'] == 'tx2']
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
+    print(len(tx2))
     test_dl = DataLoader(tx2, batch_size=args.batch_size)
     print(len(test_dl))
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     p.add_argument("--csv_path", type=Path, required=True)
     p.add_argument("--delim", default=",", help="CSV delimiter")
     p.add_argument("--cell_size", type=int, default=4, help="pixels per super‑cell")
-    p.add_argument("--batch_size", type=int, default=1024)
+    p.add_argument("--batch_size", type=int, default=512)
     p.add_argument("--hidden_dim", type=int, default=64)
     p.add_argument("--ckpt_path", type=Path, default="best_model.pt")
     main(p.parse_args())

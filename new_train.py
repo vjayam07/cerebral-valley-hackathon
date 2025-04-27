@@ -299,6 +299,7 @@ def main(args):
     #         json.dump(ray, file)
     # else:
     #     with open(file_path, 'r') as file:
+    #         ray = json.load(file)
     # * Saving ray tracing results
     CACHE = f"train_data/ray_edges_cs{args.cell_size}.pt"
     if not os.path.exists(CACHE):
@@ -333,7 +334,7 @@ def main(args):
 
     df2 = df[df['transmitter'] == 'tx2']
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
-    test_ld = DataLoader(tx2, batch_size=args.batch_size)
+    test_ld = DataLoader(tx2, batch_size=args.batch)
 
     # 3) model
     model = RFPredictor(args.hidden_dim).to(args.device)

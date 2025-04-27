@@ -4,3 +4,5 @@ pydantic
 asyncpg
 uvicorn
 numpy
+torch_geometric
+torch_scatter

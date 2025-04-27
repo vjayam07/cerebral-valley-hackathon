@@ -258,10 +258,12 @@ def train_epoch(model, data, loader, opt, device):
     model.train()
     total = 0
     for tx, rx, y in tqdm(loader):
-        tx, rx, y = tx.to(device), rx.to(device), y.to(device)
+        tx, rx, y = tx.to(device), rx.to(device), y.to(device).float()
         opt.zero_grad()
-        loss = F.mse_loss(model(data, tx, rx), y)
 
+        pred = model(data, tx, rx)
+        loss = F.mse_loss(pred, y)
+        
         loss.backward()
         opt.step()
 

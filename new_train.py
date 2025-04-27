@@ -157,22 +157,64 @@ class RSSIDataset(Dataset):
 # -----------------------------------------------------------
 
 class RFEncoder(nn.Module):
-    def __init__(self, in_dim=2, hid=64, out_dim=64):
+    def __init__(self, in_dim: int = 2, hid: int = 64, heads: int = 2):
         super().__init__()
-        self.conv1 = HeteroConv({
-            "adjacent": GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
-            "ray":      GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
-        }, aggr="mean")
-        self.conv2 = HeteroConv({
-            "adjacent": GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
-            "ray":      GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
-        }, aggr="mean")
+        self.conv1 = HeteroConv(
+            {
+                ('pixel', 'adjacent', 'pixel'):  # ← 3-tuple!
+                    GATv2Conv(in_dim, hid,
+                              heads=heads,
+                              concat=False,
+                              add_self_loops=False),
+                ('pixel', 'ray', 'pixel'):       # ← 3-tuple!
+                    GATv2Conv(in_dim, hid,
+                              heads=heads,
+                              concat=False,
+                              add_self_loops=False),
+            },
+            aggr='mean',
+        )
+
+        self.conv2 = HeteroConv(
+            {
+                ('pixel', 'adjacent', 'pixel'):
+                    GATv2Conv(hid, hid,
+                              heads=heads,
+                              concat=False,
+                              add_self_loops=False),
+                ('pixel', 'ray', 'pixel'):
+                    GATv2Conv(hid, hid,
+                              heads=heads,
+                              concat=False,
+                              add_self_loops=False),
+            },
+            aggr='mean',
+        )
 
     def forward(self, x_dict, edge_index_dict):
-        x = self.conv1(x_dict, edge_index_dict)
-        x = {k: F.relu(v) for k, v in x.items()}
-        x = self.conv2(x, edge_index_dict)
-        return x
+        x_dict = self.conv1(x_dict, edge_index_dict)
+        x_dict = {k: F.relu(v) for k, v in x_dict.items()}
+        x_dict = self.conv2(x_dict, edge_index_dict)
+        return x_dict            # returns {"pixel": [N, hid]}
+
+
+# class RFEncoder(nn.Module):
+#     def __init__(self, in_dim=2, hid=64, out_dim=64):
+#         super().__init__()
+#         self.conv1 = HeteroConv({
+#             "adjacent": GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
+#             "ray":      GATv2Conv(in_dim, hid, heads=2, concat=False, add_self_loops=False),
+#         }, aggr="mean")
+#         self.conv2 = HeteroConv({
+#             "adjacent": GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
+#             "ray":      GATv2Conv(hid, out_dim, heads=2, concat=False, add_self_loops=False),
+#         }, aggr="mean")
+
+#     def forward(self, x_dict, edge_index_dict):
+#         x = self.conv1(x_dict, edge_index_dict)
+#         x = {k: F.relu(v) for k, v in x.items()}
+#         x = self.conv2(x, edge_index_dict)
+#         return x
 
 class RFPredictor(nn.Module):
     def __init__(self, node_dim=64):

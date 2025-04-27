@@ -195,7 +195,7 @@ class RFEncoder(nn.Module):
         x_dict = self.conv1(x_dict, edge_index_dict)
         x_dict = {k: F.relu(v) for k, v in x_dict.items()}
         x_dict = self.conv2(x_dict, edge_index_dict)
-        return x_dict            # returns {"pixel": [N, hid]}
+        return x_dict
 
 
 # class RFEncoder(nn.Module):
@@ -219,7 +219,7 @@ class RFEncoder(nn.Module):
 class RFPredictor(nn.Module):
     def __init__(self, node_dim=64):
         super().__init__()
-        self.enc = RFEncoder(out_dim=node_dim)
+        self.enc = RFEncoder() # ! changed from out_dim=node_dim
         self.mlp = nn.Sequential(
             nn.Linear(node_dim * 2, node_dim),
             nn.ReLU(),

@@ -211,14 +211,14 @@ class RFPredictor(nn.Module):
 def train_epoch(model, data, loader, opt, device):
     model.train()
     total = 0
-    for tx, rx, y in loader:
+    for tx, rx, y in tqdm(loader):
         tx, rx, y = tx.to(device), rx.to(device), y.to(device)
         opt.zero_grad()
         loss = F.mse_loss(model(data, tx, rx), y)
 
         loss.backward()
         opt.step()
-        
+
         total += loss.item() * len(y)
     return total / len(loader.dataset)
 
@@ -242,15 +242,26 @@ def main(args):
     adj = make_adjacent_edges(coords, id_map)
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
 
+    # file_path = "ray_tracing.json"
+    # if not os.path.exists(file_path):
+    #     ray = make_ray_edges(df, id_map, args.cell_size)
+    #     with open(file_path, 'w') as file:
+    #         json.dump(ray, file)
+    # else:
+    #     with open(file_path, 'r') as file:
+    #         ray = json.load(file)
     # * Saving ray tracing results
-    file_path = "ray_tracing.json"
-    if not os.path.exists(file_path):
+    CACHE = f"ray_edges_cs{args.cell_size}.pt"
+    if not os.path.exists(CACHE):
         ray = make_ray_edges(df, id_map, args.cell_size)
-        with open(file_path, 'w') as file:
-            json.dump(ray, file)
+        tmp = CACHE + ".tmp"
+        torch.save({"cell_size": args.cell_size,
+                    "edge_index": ray}, tmp)
+        os.replace(tmp, CACHE)      # atomic move
     else:
-        with open(file_path, 'r') as file:
-            ray = json.load(file)
+        blob = torch.load(CACHE)
+        assert blob["cell_size"] == args.cell_size
+        ray = blob["edge_index"]
     
 
     data = HeteroData()

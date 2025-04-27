@@ -22,6 +22,8 @@ from tqdm import tqdm
 from new_train import RFEncoder, RFPredictor, RSSIDataset
 from new_train import pool_mask, load_walkable_nodes, make_adjacent_edges, make_ray_edges
 
+from tqdm import tqdm
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 ## loading model .pt weights
@@ -42,7 +44,7 @@ def load_gnn(fp='best_model.pt'):
 def eval_epoch(model, data, loader, device):
     model.eval(); total = 0
     with torch.no_grad():
-        for tx, rx, y in loader:
+        for tx, rx, y in tqdm(loader):
             tx, rx, y = tx.to(device), rx.to(device), y.to(device)
             total += F.mse_loss(model(data, tx, rx), y, reduction="sum").item()
     return total / len(loader.dataset)
@@ -100,6 +102,7 @@ def main(args):
     val_ld   = DataLoader(val_ds, batch_size=args.batch_size)
 
     df2 = df[df['transmitter'] == 'tx2']
+    print(df2)
     tx2 = RSSIDataset(df2, id_map, args.cell_size)
     test_ld = DataLoader(tx2, batch_size=args.batch_size)
 

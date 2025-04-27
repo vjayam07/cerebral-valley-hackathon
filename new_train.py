@@ -299,7 +299,6 @@ def main(args):
     #         json.dump(ray, file)
     # else:
     #     with open(file_path, 'r') as file:
-    #         ray = json.load(file)
     # * Saving ray tracing results
     CACHE = f"train_data/ray_edges_cs{args.cell_size}.pt"
     if not os.path.exists(CACHE):

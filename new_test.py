@@ -55,31 +55,32 @@ def eval_epoch(model, data, loader, device):
 # -----------------------------------------------------------
 
 def main(args):
-    # 1) graph construction
+    #* 1) dataset/graph construction
     coords, id_map, (Wc, Hc) = load_walkable_nodes(args.mask_path, args.cell_size)
-    adj = make_adjacent_edges(coords, id_map)
+
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
+    df2 = df[df['transmitter'] == 'tx2']
+    print("rows with tx2 in CSV:", len(df2))         # should be > 0
 
-    df_no2 = df[df['transmitter'] != 'tx2'] # removing one transmitter for testing purposes
+    # 2. check one example coordinate pair
+    row0 = df2.iloc[0]
+    print("example:", row0[['i','j','tx_location_i','tx_location_j']])
 
-    val_ratio = 0.2
-    full = RSSIDataset(df_no2, id_map, args.cell_size)
-    val_len = int(len(full) * val_ratio)
-    print(len(full))
-    train_ds, val_ds = random_split(full, [len(full)-val_len, val_len])
-    train_ld = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
-    print(len(train_ld))
-    val_ld = DataLoader(val_ds, batch_size=args.batch_size)
+    # 3. is that receiver *and* transmitter inside the mask?
+    print("rx in id_map:", (row0.i // args.cell_size,
+                            row0.j // args.cell_size) in id_map)
+    print("tx in id_map:", (row0.tx_location_i // args.cell_size,
+                            row0.tx_location_j // args.cell_size) in id_map)
+    
+    
+    tx2 = RSSIDataset(df2, id_map, args.cell_size)
+    print(len(tx2))
+    test_dl = DataLoader(tx2, batch_size=args.batch_size)
+    print(len(test_dl))
 
-    # file_path = "ray_tracing.json"
-    # if not os.path.exists(file_path):
-    #     ray = make_ray_edges(df, id_map, args.cell_size)
-    #     with open(file_path, 'w') as file:
-    #         json.dump(ray, file)
-    # else:
-    #     with open(file_path, 'r') as file:
-    #         ray = json.load(file)
-    # * Saving ray tracing results
+
+    #* 2) Initializing the edges of the graph
+    adj = make_adjacent_edges(coords, id_map)
     CACHE = f"train_data/ray_edges_cs{args.cell_size}.pt"
     if not os.path.exists(CACHE):
         ray = make_ray_edges(df, id_map, args.cell_size)
@@ -92,7 +93,6 @@ def main(args):
         assert blob["cell_size"] == args.cell_size
         ray = blob["edge_index"]
     
-
     data = HeteroData()
     # node features: normalised coarse‑grid coords (x=j, y=i)
     xy = coords[:, [1, 0]].astype(np.float32)
@@ -104,13 +104,7 @@ def main(args):
     data["pixel", "ray", "pixel"].edge_index = to_idx(ray)
     data = data.to(device)
 
-    df2 = df[df['transmitter'] == 'tx2']
-    tx2 = RSSIDataset(df2, id_map, args.cell_size)
-    print(len(tx2))
-    test_dl = DataLoader(tx2, batch_size=args.batch_size)
-    print(len(test_dl))
-
-    # 3) model
+    #* 3) model
     model = load_gnn()
     model = model.to(device)
     test_score = eval_epoch(model, data, test_dl, device)

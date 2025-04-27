@@ -184,21 +184,41 @@ class RFPredictor(nn.Module):
             nn.Linear(node_dim, 1),
         )
 
-    def forward(self, data: HeteroData, tx, rx):
-        z = self.enc(data.x_dict, data.edge_index_dict)["pixel"]
-        return self.mlp(torch.cat([z[tx], z[rx]], dim=-1)).squeeze(-1)
+    def forward(
+        self,
+        data: HeteroData,
+        tx_idx: torch.LongTensor,      # (B,)
+        rx_idx: torch.LongTensor,      # (B,)
+    ) -> torch.Tensor:                 # returns (B,)
+        """
+        tx_idx, rx_idx are integer node-IDs (already mapped from (i,j) coords)
+        """
+        z_pix = self.enc(data)["pixel"]
+        h_tx = z_pix[tx_idx]
+        h_rx = z_pix[rx_idx]
+
+        out = self.mlp(torch.cat([h_tx, h_rx], dim=-1))
+        return out.squeeze(-1)
+
+    # def forward(self, data: HeteroData, tx, rx):
+    #     z = self.enc(data.x_dict, data.edge_index_dict)["pixel"]
+    #     return self.mlp(torch.cat([z[tx], z[rx]], dim=-1)).squeeze(-1)
 
 # -----------------------------------------------------------
 # Train / eval loops
 # -----------------------------------------------------------
 
 def train_epoch(model, data, loader, opt, device):
-    model.train(); total = 0
+    model.train()
+    total = 0
     for tx, rx, y in loader:
         tx, rx, y = tx.to(device), rx.to(device), y.to(device)
         opt.zero_grad()
         loss = F.mse_loss(model(data, tx, rx), y)
-        loss.backward(); opt.step()
+
+        loss.backward()
+        opt.step()
+        
         total += loss.item() * len(y)
     return total / len(loader.dataset)
 
@@ -222,6 +242,7 @@ def main(args):
     adj = make_adjacent_edges(coords, id_map)
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
 
+    # * Saving ray tracing results
     file_path = "ray_tracing.json"
     if not os.path.exists(file_path):
         ray = make_ray_edges(df, id_map, args.cell_size)
@@ -230,7 +251,6 @@ def main(args):
     else:
         with open(file_path, 'r') as file:
             ray = json.load(file)
-
     
 
     data = HeteroData()

@@ -92,12 +92,8 @@ def main(args):
 
     df = pd.read_csv(args.csv_path, delimiter=args.delim)
     df2 = df[df['transmitter'] == 'tx2']
-    print("rows with tx2 in CSV:", len(df2))         # should be > 0
 
-    # 2. check one example coordinate pair
     row0 = df2.iloc[0]
-    print("example:", row0[['i','j','tx_location_i','tx_location_j']])
-
     # 3. is that receiver *and* transmitter inside the mask?
     if (row0.tx_location_i // args.cell_size, row0.tx_location_j // args.cell_size) not in id_map:
         kdtree, centres, node_ids = build_walkable_tree(id_map, cell_size=4)
@@ -105,6 +101,10 @@ def main(args):
         print("[pixels], distance moved:", d_px, "px")
         df['tx_location_i'] = i_snap
         df['tx_location_j'] = j_snap
+    else:
+        return
+    
+    print((row0.tx_location_i // args.cell_size, row0.tx_location_j // args.cell_size) in id_map)
 
     
     
